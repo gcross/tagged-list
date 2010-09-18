@@ -1,0 +1,26 @@
+-- @+leo-ver=4-thin
+-- @+node:gcross.20100917231323.1281:@thin tagged-list.cabal
+-- @@language Haskell
+
+Name:                tagged-list
+Version:             1.0
+License:             BSD3
+License-file:        LICENSE
+Author:              Gregory Crosswhite
+Maintainer:          Gregory Crosswhite <gcross@phys.washington.edu>
+Stability:           Provisional
+Synopsis:            
+Description:         
+Cabal-version:       >=1.2.3
+Build-type:          Simple
+Category:	     Type System,Data
+
+Library
+    Build-depends:   base >= 3 && < 5,
+                     type-level-natural-number >= 1.0 && < 1.2,
+                     type-level-natural-number-operations >= 1.0 && < 1.2,
+                     natural-number >= 1.0 && < 1.1,
+                     binary >= 0.5 && < 0.6
+    Exposed-modules: Data.List.Tagged
+-- @-node:gcross.20100917231323.1281:@thin tagged-list.cabal
+-- @-leo
