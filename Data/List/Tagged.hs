@@ -20,11 +20,13 @@ module Data.List.Tagged where
 -- @+node:gcross.20100918210837.1286:<< Import needed modules >>
 import Prelude hiding (tail,foldl,foldr,map,mapM,mapM_,length)
 
+import Control.Applicative
 import Control.Monad.Trans.Abort
 
 import Data.Binary
 import Data.Foldable hiding (toList,mapM_)
 import Data.Monoid
+import Data.Traversable (Traversable(..))
 import Data.Typeable
 
 import TypeLevel.NaturalNumber hiding (NaturalNumber)
@@ -37,9 +39,12 @@ import Data.NaturalNumber
 
 -- @+others
 -- @+node:gcross.20100918210837.1287:Types
--- @+node:gcross.20100928114649.1285:FlipTaggedList
+-- @+node:gcross.20100928114649.1285:TL
 newtype TL α n = TL { unwrapTL :: TaggedList n α }
--- @-node:gcross.20100928114649.1285:FlipTaggedList
+-- @-node:gcross.20100928114649.1285:TL
+-- @+node:gcross.20100928151321.1296:ATL
+newtype ATL t α n = ATL { unwrapATL :: t (TaggedList n α) }
+-- @-node:gcross.20100928151321.1296:ATL
 -- @+node:gcross.20100918210837.1288:TaggedList
 data TaggedList n α where
     E :: TaggedList Zero α
@@ -91,6 +96,13 @@ instance NaturalNumber n ⇒ Functor (TaggedList n) where
         step f recurse (TL (x :. xs)) = TL (f x :. withTL recurse xs)
 -- @nonl
 -- @-node:gcross.20100918210837.1293:Functor TaggedList
+-- @+node:gcross.20100928151321.1295:Traversable TaggedList
+instance NaturalNumber n ⇒ Traversable (TaggedList n) where
+    traverse f = unwrapATL . transform (const . ATL . pure $ E) (step f) . TL
+      where
+        step :: ∀ α β t n. Applicative t ⇒ (α → t β) → (TL α n → ATL t β n) → TL α (SuccessorTo n) → ATL t β (SuccessorTo n) 
+        step f recurse (TL (x :. xs)) = ATL (liftA2 (:.) (f x) (unwrapATL . recurse . TL $ xs))
+-- @-node:gcross.20100928151321.1295:Traversable TaggedList
 -- @-node:gcross.20100918210837.1290:Instances
 -- @+node:gcross.20100918210837.1296:Functions
 -- @+node:gcross.20100918210837.1300:append
@@ -146,15 +158,6 @@ map :: (α → β) → TaggedList n α → TaggedList n β
 map f E = E
 map f (x :. xs) = f x :. map f xs
 -- @-node:gcross.20100918210837.1304:map
--- @+node:gcross.20100918210837.1309:mapM
-mapM :: Monad m ⇒ (α → m β) → TaggedList n α → m (TaggedList n β)
-mapM f E = return E
-mapM f (x :. xs) = do
-    y ← f x
-    ys ← mapM f xs
-    return (y :. ys)
--- @nonl
--- @-node:gcross.20100918210837.1309:mapM
 -- @+node:gcross.20100918210837.1310:mapM_
 mapM_ :: Monad m ⇒ (α → m β) → TaggedList n α → m ()
 mapM_ f E = return ()
