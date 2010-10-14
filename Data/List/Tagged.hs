@@ -20,22 +20,42 @@ module Data.List.Tagged where
 
 -- @<< Import needed modules >>
 -- @+node:gcross.20100918210837.1286:<< Import needed modules >>
-import Prelude hiding (tail,foldl,foldr,map,mapM,mapM_,length)
+import Prelude
+            (Bool(..)
+            ,Either(..)
+            ,Eq(..)
+            ,Functor
+            ,Monad(..)
+            ,const
+            ,error
+            ,fmap
+            ,id
+            ,otherwise
+            ,snd
+            ,undefined
+            ,($)
+            ,(.)
+            ,(&&)
+            )
 
-import Control.Applicative
-import Control.Monad.Trans.Abort
+import Control.Applicative (Applicative,liftA2,pure)
+import Control.Monad.Trans.Abort (Abort,abort,runAbort)
 
-import Data.Binary
-import Data.Foldable hiding (toList,mapM_)
-import Data.Monoid
-import Data.Traversable (Traversable(..))
-import Data.Typeable
+import Data.Binary (Binary,get,put)
+import Data.Foldable (Foldable,foldMap)
+import Data.Monoid (Monoid,mappend,mempty)
+import Data.Traversable (Traversable,traverse)
+import Data.Typeable (Typeable)
 
-import TypeLevel.NaturalNumber hiding (NaturalNumber)
-import TypeLevel.NaturalNumber.Induction
-import TypeLevel.NaturalNumber.Operations
+import TypeLevel.NaturalNumber
+            (N0,N1,N2,N3,N4,N5,N6,N7,N8,N9,N10,N11,N12,N13,N14,N15
+            ,Zero
+            ,SuccessorTo
+            )
+import TypeLevel.NaturalNumber.Induction (Induction(deduction2M),induction,deduction,transform)
+import TypeLevel.NaturalNumber.Operations (Plus)
 
-import Data.NaturalNumber
+import Data.NaturalNumber (NaturalNumber,N,asN)
 -- @-node:gcross.20100918210837.1286:<< Import needed modules >>
 -- @nl
 
