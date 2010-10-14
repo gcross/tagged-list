@@ -16,7 +16,32 @@
 -- @-node:gcross.20100918210837.1285:<< Language extensions >>
 -- @nl
 
-module Data.List.Tagged where
+module Data.List.Tagged (
+    -- * Tagged lists
+    TaggedList(..),
+    UntaggedList(..),
+    TL(..),
+    ATL(..),
+    -- * Utility functions
+    append,
+    eqLists,
+    extractRightsOrLefts,
+    fromList,
+    fromListAsUntagged,
+    head,
+    join,
+    length,
+    map,
+    mapM_,
+    replace,
+    tail,
+    toList,
+    withTL,
+    zipf,
+    -- * Tuple conversion
+    TupleOf(..),
+    TupleConvertable(..),
+) where
 
 -- @<< Import needed modules >>
 -- @+node:gcross.20100918210837.1286:<< Import needed modules >>
@@ -62,12 +87,15 @@ import Data.NaturalNumber (NaturalNumber,N,asN)
 -- @+others
 -- @+node:gcross.20100918210837.1287:Types
 -- @+node:gcross.20100928114649.1285:TL
+-- | 'TL' is a newtype wrapper around a 'TaggedList' which flips the two type arguments;  this type was introduced to make it easier to define inductive operations on TaggedLists.
 newtype TL α n = TL { unwrapTL :: TaggedList n α }
 -- @-node:gcross.20100928114649.1285:TL
 -- @+node:gcross.20100928151321.1296:ATL
+-- | 'ATL' is a newtype wrapper around some functor of 'TaggedList' which flips the two type arguments;  this type was introduced to make it easier to define inductive operations on functors of TaggedLists.
 newtype ATL t α n = ATL { unwrapATL :: t (TaggedList n α) }
 -- @-node:gcross.20100928151321.1296:ATL
 -- @+node:gcross.20100918210837.1288:TaggedList
+-- | 'TaggedList' is a data structure that represents a linked-list tagged with a phantom type-level natural number representing the length of the list.
 data TaggedList n α where
     E :: TaggedList Zero α
     (:.) :: α → TaggedList n α → TaggedList (SuccessorTo n) α
@@ -76,6 +104,7 @@ data TaggedList n α where
 infixr :.
 -- @-node:gcross.20100918210837.1288:TaggedList
 -- @+node:gcross.20100918210837.1289:UntaggedList
+-- | 'UntaggedList' is a wrapper around TaggedList that lets you hide the length tag;  the purpose of this is to allow for situations in which you have a tagged list with an unknown length.
 data UntaggedList α = ∀ n. UntaggedList (TaggedList n α) deriving Typeable
 -- @-node:gcross.20100918210837.1289:UntaggedList
 -- @-node:gcross.20100918210837.1287:Types
@@ -128,11 +157,15 @@ instance Induction n ⇒ Traversable (TaggedList n) where
 -- @-node:gcross.20100918210837.1290:Instances
 -- @+node:gcross.20100918210837.1296:Functions
 -- @+node:gcross.20100918210837.1300:append
+-- | Appends two tagged lists.
+--
+-- (Note: The order of the arguments to Plus is important since append is defined recursively over its *first* argument.)
 append :: TaggedList m α → TaggedList n α → TaggedList (Plus m n) α
 append E = id
 append (x :. xs) = (x :.) . append xs
 -- @-node:gcross.20100918210837.1300:append
 -- @+node:gcross.20100918210837.1308:eqLists
+-- | Compares two lists, which may be of different sizes;  'False' is returned if the lists do not have the same size.
 eqLists :: Eq α ⇒ TaggedList m α → TaggedList n α → Bool
 eqLists E E = True
 eqLists E _ = False
@@ -140,7 +173,21 @@ eqLists _ E = False
 eqLists (x:.xs) (y:.ys) = (x == y) && eqLists xs ys
 -- @nonl
 -- @-node:gcross.20100918210837.1308:eqLists
+-- @+node:gcross.20100918210837.1303:extractRightsOrLefts
+-- | If the input list of 'Either' values has only 'Rights', then this function returns a tagged list of the same length with the values contained in each 'Right'.  Otherwise, this function returns an ordinary list with the values contained in each 'Left'.
+extractRightsOrLefts :: TaggedList n (Either α β) → Either [α] (TaggedList n β)
+extractRightsOrLefts E = Right E
+extractRightsOrLefts (Left x :. rest) =  
+    case extractRightsOrLefts rest of
+        Left xs → Left (x:xs)
+        Right _ → Left [x]
+extractRightsOrLefts (Right x :. rest) =  
+    case extractRightsOrLefts rest of
+        Left es → Left es
+        Right xs → Right (x:.xs)
+-- @-node:gcross.20100918210837.1303:extractRightsOrLefts
 -- @+node:gcross.20100928114649.1287:fromList
+-- | Converts a list to a 'TaggedList', returning _|_ if the length of the list does not match the length tag of the return type.
 fromList :: Induction n ⇒ [α] → TaggedList n α
 fromList = unwrapTL . snd . induction z i
   where
@@ -151,6 +198,7 @@ fromList = unwrapTL . snd . induction z i
 -- @nonl
 -- @-node:gcross.20100928114649.1287:fromList
 -- @+node:gcross.20100918210837.1306:fromListAsUntagged
+-- | Converts an arbitrary list to an 'UntaggedList'.
 fromListAsUntagged :: [α] → UntaggedList α
 fromListAsUntagged [] = UntaggedList E
 fromListAsUntagged (x:rest) =
@@ -158,10 +206,14 @@ fromListAsUntagged (x:rest) =
         UntaggedList xs → UntaggedList (x :. xs)
 -- @-node:gcross.20100918210837.1306:fromListAsUntagged
 -- @+node:gcross.20100918210837.1298:head
+-- | Returns the head of a tagged list.
+--
+-- Note that unlike its List counterpart, this function never returns _|_ since the existence of at least one element is guaranteed by the type system.
 head :: TaggedList (SuccessorTo n) α → α
 head (x :. _) = x
 -- @-node:gcross.20100918210837.1298:head
 -- @+node:gcross.20100918210837.1301:join
+-- | Appends two lists together, and returns both the result and a splitter function that allows you to take another list of the same size as the result (though possible of a different type) and split it back into two lists of the sizes of the arguments to this function.
 join :: TaggedList m α → TaggedList n α → (TaggedList (Plus m n) α,TaggedList (Plus m n) β → (TaggedList m β,TaggedList n β))
 join E v = (v,\z → (E,z))
 join (x :. xs) v =
@@ -171,22 +223,26 @@ join (x :. xs) v =
        )
 -- @-node:gcross.20100918210837.1301:join
 -- @+node:gcross.20100918210837.1297:length
+-- | Returns the length of the list as a value-level natural number.
 length :: NaturalNumber n ⇒ TaggedList n α → N n
 length _ = asN
 -- @nonl
 -- @-node:gcross.20100918210837.1297:length
 -- @+node:gcross.20100918210837.1304:map
+-- | Applies a function to every element of the list.
 map :: (α → β) → TaggedList n α → TaggedList n β
 map f E = E
 map f (x :. xs) = f x :. map f xs
 -- @-node:gcross.20100918210837.1304:map
 -- @+node:gcross.20100918210837.1310:mapM_
+-- | Performs an action for every element in the list and returns ().
 mapM_ :: Monad m ⇒ (α → m β) → TaggedList n α → m ()
 mapM_ f E = return ()
 mapM_ f (x :. xs) = f x >> mapM_ f xs
 -- @nonl
 -- @-node:gcross.20100918210837.1310:mapM_
 -- @+node:gcross.20100918210837.1302:replace
+-- | Replaces all of the elements in a given tagged list with the members of an ordinary list, returning _|_ if the length of the list does not match the length tag.
 replace :: [α] → TaggedList n β → TaggedList n α
 replace [] E = E
 replace [] _ = error "There are not enough elements in the list to replace all elements of the tagged list."
@@ -194,36 +250,34 @@ replace (x:xs) (_:.ys) = x :. replace xs ys
 replace (x:xs) E = error "There are too many elements in the list to replace all elements of the tagged list."
 -- @-node:gcross.20100918210837.1302:replace
 -- @+node:gcross.20100918210837.1299:tail
+-- | Returns the tail of a tagged list.
+--
+-- Note that unlike its List counterpart, this function never returns _|_ since the existence of at least one element is guaranteed by the type system.
 tail :: TaggedList (SuccessorTo n) α → TaggedList n α
 tail (_ :. xs) = xs
 -- @-node:gcross.20100918210837.1299:tail
 -- @+node:gcross.20100918210837.1305:toList
+-- | Converts a tagged list to an ordinary list.
 toList :: TaggedList n α → [α]
 toList E = []
 toList (x :. xs) = x : toList xs
 -- @-node:gcross.20100918210837.1305:toList
--- @+node:gcross.20100918210837.1303:unwrapRights
-unwrapRights :: TaggedList n (Either α β) → Either [α] (TaggedList n β)
-unwrapRights E = Right E
-unwrapRights (Left x :. rest) =  
-    case unwrapRights rest of
-        Left xs → Left (x:xs)
-        Right _ → Left [x]
-unwrapRights (Right x :. rest) =  
-    case unwrapRights rest of
-        Left es → Left es
-        Right xs → Right (x:.xs)
--- @-node:gcross.20100918210837.1303:unwrapRights
 -- @+node:gcross.20100928114649.1288:withTL
+-- | This is a convenience function for lifting a function on 'TL' to a function on 'TaggedList'.
+--
+-- (Note:  'TL' is just a newtype wrapper around 'TaggedList' that swaps the two type arguments to make it easier to perform inductive operations.)
+withTL :: (TL α n → TL β n) → TaggedList n α → TaggedList n β
 withTL f = unwrapTL . f . TL
 -- @-node:gcross.20100928114649.1288:withTL
 -- @+node:gcross.20100918210837.1311:zipf
+-- | Applies a list of functions to a list of inputs.
 zipf :: TaggedList n (α → β) → TaggedList n α → TaggedList n β
 zipf E E = E
 zipf (f :. fs) (x :. xs) = f x :. zipf fs xs
 -- @-node:gcross.20100918210837.1311:zipf
 -- @-node:gcross.20100918210837.1296:Functions
 -- @+node:gcross.20100929163524.1296:Tuple conversions
+-- | TupleOf is a type family that maps type-level natural numbers (from N0 to N15) to tuples with the corresponding number of entries.
 type family TupleOf n α
 type instance TupleOf N0  α = ()
 type instance TupleOf N1  α = (α)
@@ -242,6 +296,7 @@ type instance TupleOf N13 α = (α,α,α,α,α,α,α,α,α,α,α,α,α)
 type instance TupleOf N14 α = (α,α,α,α,α,α,α,α,α,α,α,α,α,α)
 type instance TupleOf N15 α = (α,α,α,α,α,α,α,α,α,α,α,α,α,α,α)
 
+-- | The class TupleConvertable provides methods for converting tagged lists to and from tuples.
 class TupleConvertable n where
     fromTuple :: TupleOf n α → TaggedList n α
     toTuple :: TaggedList n α → TupleOf n α
