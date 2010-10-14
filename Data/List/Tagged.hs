@@ -61,7 +61,7 @@ data UntaggedList α = ∀ n. UntaggedList (TaggedList n α) deriving Typeable
 -- @-node:gcross.20100918210837.1287:Types
 -- @+node:gcross.20100918210837.1290:Instances
 -- @+node:gcross.20100918210837.1291:Binary TaggedList
-instance (NaturalNumber n, Binary α) ⇒ Binary (TaggedList n α) where
+instance (Induction n, Binary α) ⇒ Binary (TaggedList n α) where
     get = fmap fromList get
     put = put . toList
 -- @nonl
@@ -73,7 +73,7 @@ instance Binary α ⇒ Binary (UntaggedList α) where
 -- @nonl
 -- @-node:gcross.20100918210837.1292:Binary UntaggedList
 -- @+node:gcross.20100918210837.1295:Eq TaggedList
-instance (NaturalNumber n, Eq α) ⇒ Eq (TaggedList n α) where
+instance (Induction n, Eq α) ⇒ Eq (TaggedList n α) where
     x == y = runAbort (deduction2M () (\_ _ _ → return True) step (TL x) (TL y))
       where
         step :: Eq α ⇒ TL α (SuccessorTo n) → TL α (SuccessorTo n) → () → Abort Bool (TL α n,TL α n,())
@@ -83,7 +83,7 @@ instance (NaturalNumber n, Eq α) ⇒ Eq (TaggedList n α) where
 -- @nonl
 -- @-node:gcross.20100918210837.1295:Eq TaggedList
 -- @+node:gcross.20100918210837.1294:Foldable TaggedList
-instance NaturalNumber n ⇒ Foldable (TaggedList n) where
+instance Induction n ⇒ Foldable (TaggedList n) where
     foldMap f l = deduction mempty (const id) (step f) (TL l)
       where
         step :: Monoid m ⇒ (α → m) → TL α (SuccessorTo n) → m → (TL α n,m)
@@ -91,7 +91,7 @@ instance NaturalNumber n ⇒ Foldable (TaggedList n) where
 -- @nonl
 -- @-node:gcross.20100918210837.1294:Foldable TaggedList
 -- @+node:gcross.20100918210837.1293:Functor TaggedList
-instance NaturalNumber n ⇒ Functor (TaggedList n) where
+instance Induction n ⇒ Functor (TaggedList n) where
     fmap f = withTL (transform (const (TL E)) (step f))
       where
         step :: ∀ α β n. (α → β) → (TL α n → TL β n) → TL α (SuccessorTo n) → TL β (SuccessorTo n) 
@@ -99,7 +99,7 @@ instance NaturalNumber n ⇒ Functor (TaggedList n) where
 -- @nonl
 -- @-node:gcross.20100918210837.1293:Functor TaggedList
 -- @+node:gcross.20100928151321.1295:Traversable TaggedList
-instance NaturalNumber n ⇒ Traversable (TaggedList n) where
+instance Induction n ⇒ Traversable (TaggedList n) where
     traverse f = unwrapATL . transform (const . ATL . pure $ E) (step f) . TL
       where
         step :: ∀ α β t n. Applicative t ⇒ (α → t β) → (TL α n → ATL t β n) → TL α (SuccessorTo n) → ATL t β (SuccessorTo n) 
@@ -121,7 +121,7 @@ eqLists (x:.xs) (y:.ys) = (x == y) && eqLists xs ys
 -- @nonl
 -- @-node:gcross.20100918210837.1308:eqLists
 -- @+node:gcross.20100928114649.1287:fromList
-fromList :: NaturalNumber n ⇒ [α] → TaggedList n α
+fromList :: Induction n ⇒ [α] → TaggedList n α
 fromList = unwrapTL . snd . induction z i
   where
     z [] = (undefined,TL E)
