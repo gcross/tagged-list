@@ -125,7 +125,13 @@ instance Binary α ⇒ Binary (UntaggedList α) where
 instance (Induction n, Eq α) ⇒ Eq (TaggedList n α) where
     x == y = runAbort (deduction2M () (\_ _ _ → return True) step (TL x) (TL y))
       where
-        step :: Eq α ⇒ TL α (SuccessorTo n) → TL α (SuccessorTo n) → () → Abort Bool (TL α n,TL α n,())
+        step ::
+            forall n α.
+            Eq α ⇒
+            TL α (SuccessorTo n) →
+            TL α (SuccessorTo n) →
+            () →
+            Abort Bool (TL α n,TL α n,())
         step (TL (x :. xs)) (TL (y :. ys)) b
           | x /= y    = abort False
           | otherwise = return (TL xs,TL ys,())
@@ -135,7 +141,13 @@ instance (Induction n, Eq α) ⇒ Eq (TaggedList n α) where
 instance Induction n ⇒ Foldable (TaggedList n) where
     foldMap f l = deduction mempty (const id) (step f) (TL l)
       where
-        step :: Monoid m ⇒ (α → m) → TL α (SuccessorTo n) → m → (TL α n,m)
+        step ::
+            forall α n m.
+            Monoid m ⇒
+            (α → m) →
+            TL α (SuccessorTo n) →
+            m →
+            (TL α n,m)
         step f (TL (x :. xs)) a = (TL xs,a `mappend` f x)
 -- @nonl
 -- @-node:gcross.20100918210837.1294:Foldable TaggedList
