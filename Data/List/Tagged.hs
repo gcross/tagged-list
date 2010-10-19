@@ -11,6 +11,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE UnicodeSyntax #-}
 -- @-node:gcross.20100918210837.1285:<< Language extensions >>
@@ -24,6 +25,7 @@ module Data.List.Tagged (
     ATL(..),
     -- * Utility functions
     append,
+    castTag,
     eqLists,
     extractRightsOrLefts,
     fromList,
@@ -68,8 +70,10 @@ import Control.Monad.Trans.Abort (Abort,abort,runAbort)
 
 import Data.Binary (Binary,get,put)
 import Data.Foldable (Foldable,foldMap)
+import Data.Maybe (Maybe(Just,Nothing))
 import Data.Monoid (Monoid,mappend,mempty)
 import Data.Traversable (Traversable,traverse)
+import Data.Type.Equality ((:=:)(Refl),eqT)
 import Data.Typeable (Typeable)
 
 import TypeLevel.NaturalNumber
@@ -176,6 +180,12 @@ append :: TaggedList m α → TaggedList n α → TaggedList (Plus m n) α
 append E = id
 append (x :. xs) = (x :.) . append xs
 -- @-node:gcross.20100918210837.1300:append
+-- @+node:gcross.20101019112709.1288:castTag
+-- | Casts the tag of a list, given a proof that the new tag is equal to the old tag.
+castTag :: m :=: n → TaggedList m α → TaggedList n α
+castTag Refl = id
+-- @nonl
+-- @-node:gcross.20101019112709.1288:castTag
 -- @+node:gcross.20100918210837.1308:eqLists
 -- | Compares two lists, which may be of different sizes;  'False' is returned if the lists do not have the same size.
 eqLists :: Eq α ⇒ TaggedList m α → TaggedList n α → Bool
