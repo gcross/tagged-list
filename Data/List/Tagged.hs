@@ -70,11 +70,15 @@ import Control.Monad.Trans.Abort (Abort,abort,runAbort)
 
 import Data.Binary (Binary,get,put)
 import Data.Foldable (Foldable,foldMap)
+import Data.List ((++))
+import qualified Data.List as List
 import Data.Maybe (Maybe(Just,Nothing))
 import Data.Monoid (Monoid,mappend,mempty)
 import Data.Traversable (Traversable,traverse)
 import Data.Type.Equality ((:=:)(Refl),eqT)
 import Data.Typeable (Typeable)
+
+import Text.Show (show)
 
 import TypeLevel.NaturalNumber
             (N0,N1,N2,N3,N4,N5,N6,N7,N8,N9,N10,N11,N12,N13,N14,N15
@@ -114,7 +118,7 @@ data UntaggedList α = ∀ n. NaturalNumber n ⇒ UntaggedList (TaggedList n α)
 -- @-node:gcross.20100918210837.1287:Types
 -- @+node:gcross.20100918210837.1290:Instances
 -- @+node:gcross.20100918210837.1291:Binary TaggedList
-instance (Induction n, Binary α) ⇒ Binary (TaggedList n α) where
+instance (NaturalNumber n, Binary α) ⇒ Binary (TaggedList n α) where
     get = fmap fromList get
     put = put . toList
 -- @nonl
@@ -210,13 +214,19 @@ extractRightsOrLefts (Right x :. rest) =
 -- @-node:gcross.20100918210837.1303:extractRightsOrLefts
 -- @+node:gcross.20100928114649.1287:fromList
 -- | Converts a list to a 'TaggedList', returning _|_ if the length of the list does not match the length tag of the return type.
-fromList :: Induction n ⇒ [α] → TaggedList n α
-fromList = unwrapTL . snd . induction z i
+fromList :: NaturalNumber n ⇒ [α] → TaggedList n α
+fromList l = r
   where
-    z [] = (undefined,TL E)
-    z _ = error "List is too long to convert into a tagged list of the given length."
-    i (x:xs) (TL l) = (xs,TL (x :. l))
-    i [] _ = error "List is too short to convert into a tagged list of the given length."
+    r = case fromListAsUntagged l of
+            UntaggedList t →
+                case eqT (length t) (length r) of
+                    Just proof → castTag proof t
+                    Nothing →
+                        error $
+                            "Cannot convert a list of length "
+                            ++ show (List.length l) ++
+                            " to a tagged list of fixed length "
+                            ++ show (length r)
 -- @nonl
 -- @-node:gcross.20100928114649.1287:fromList
 -- @+node:gcross.20100918210837.1306:fromListAsUntagged
