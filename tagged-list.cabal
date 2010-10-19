@@ -3,7 +3,7 @@
 -- @@language Haskell
 
 Name:                tagged-list
-Version:             1.0
+Version:             1.1
 License:             BSD3
 License-file:        LICENSE
 Author:              Gregory Crosswhite
@@ -14,6 +14,8 @@ Description:         This package contains a datatype, 'TaggedList', that provid
                      tagged with a phantom type-level natural number that corresponds to the length of
                      the list.  It also contains some basic operations on these lists, as well as a
                      typeclass for converting tagged lists to and from tuples.
+		     .
+		     New in version 1.1:  added function castTag, and improved error reporting in fromList.
 Cabal-version:       >=1.2.3
 Build-type:          Simple
 Category:            Data
