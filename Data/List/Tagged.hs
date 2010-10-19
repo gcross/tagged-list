@@ -105,7 +105,7 @@ infixr :.
 -- @-node:gcross.20100918210837.1288:TaggedList
 -- @+node:gcross.20100918210837.1289:UntaggedList
 -- | 'UntaggedList' is a wrapper around TaggedList that lets you hide the length tag;  the purpose of this is to allow for situations in which you have a tagged list with an unknown length.
-data UntaggedList α = ∀ n. UntaggedList (TaggedList n α) deriving Typeable
+data UntaggedList α = ∀ n. NaturalNumber n ⇒ UntaggedList (TaggedList n α) deriving Typeable
 -- @-node:gcross.20100918210837.1289:UntaggedList
 -- @-node:gcross.20100918210837.1287:Types
 -- @+node:gcross.20100918210837.1290:Instances
