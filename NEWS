@@ -3,6 +3,7 @@ Version 1.1
 
 *) Added function castTag.
 *) Improved error message returned by fromList.
+*) Fixed compiler error on GHC 7.0.*;  credit goes to Daniel Schüssler <danlex@gmx.de>
 
 Version 1.0
 ===========
