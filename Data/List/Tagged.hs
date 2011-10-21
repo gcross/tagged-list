@@ -248,11 +248,15 @@ head (x :. _) = x
 -- | Appends two lists together, and returns both the result and a splitter function that allows you to take another list of the same size as the result (though possible of a different type) and split it back into two lists of the sizes of the arguments to this function.
 join :: TaggedList m α → TaggedList n α → (TaggedList (Plus m n) α,TaggedList (Plus m n) β → (TaggedList m β,TaggedList n β))
 join E v = (v,\z → (E,z))
-join (x :. xs) v =
-    let (vv,split) = join xs v 
-    in (x :. vv
-       ,(\(y :. ys) → let (a,b) = split ys in (y :. a,b))
-       )
+join (x :. xs) v = (x :. vv, bumpJoin split)
+  where
+    (vv,split) = join xs v
+    -- Note: The abstraction over split' is to avoid having to use ScopedTypeVariables
+    bumpJoin :: (TaggedList k a -> (TaggedList k1 a,
+                                    TaggedList k2 a)) ->
+                (TaggedList (SuccessorTo k) a -> (TaggedList (SuccessorTo k1) a,
+                                                  TaggedList k2 a))
+    bumpJoin split' (y :. ys) = let (a,b) = split' ys in (y :. a,b)
 -- @-node:gcross.20100918210837.1301:join
 -- @+node:gcross.20100918210837.1297:length
 -- | Returns the length of the list as a value-level natural number.
